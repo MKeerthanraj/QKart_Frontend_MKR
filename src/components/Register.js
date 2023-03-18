@@ -18,6 +18,8 @@ const Register = () => {
   });
   const { enqueueSnackbar } = useSnackbar();
 
+  const history = useHistory();
+
   // TODO: CRIO_TASK_MODULE_REGISTER - Implement the register function
   /**
    * Definition for register handler
@@ -61,22 +63,29 @@ const Register = () => {
       await axios
         .post(url, userData, headers)
         .then(() => {
-          enqueueSnackbar("Registered Successfully", { variant: "success" });
+          enqueueSnackbar("Registered Successfully", {
+            variant: "success",
+            autoHideDuration: 3000,
+          });
           setLoading(false);
+          history.push("/login");
         })
         .catch((error) => {
-          if (error.toJSON().message === "Network Error"){
+          if (error.toJSON().message === "Network Error") {
             enqueueSnackbar(
               "Something went wrong. Check that the backend is running, reachable and returns valid JSON.",
-              { variant: "error" }
+              { variant: "error", autoHideDuration: 3000 }
             );
-          setLoading(false);}
-          else{
-            enqueueSnackbar(error.response.data.message, { variant: "error" });
+            setLoading(false);
+          } else {
+            enqueueSnackbar(error.response.data.message, {
+              variant: "error",
+              autoHideDuration: 3000,
+            });
             setLoading(false);
           }
         });
-    }else{
+    } else {
       setLoading(false);
     }
   };
@@ -127,7 +136,7 @@ const Register = () => {
       justifyContent="space-between"
       minHeight="100vh"
     >
-      <Header hasHiddenAuthButtons />
+      <Header hasHiddenAuthButtons={true} />
       <Box className="content">
         <Stack spacing={2} className="form">
           <h2 className="title">Register</h2>
@@ -173,15 +182,18 @@ const Register = () => {
             }}
             required
           />
-          {loading ? <CircularProgress style = {{ margin : "10px auto"}} />
-          :(<Button className="button" variant="contained" onClick={register}>
-            Register Now
-          </Button>)}
+          {loading ? (
+            <CircularProgress style={{ margin: "10px auto" }} />
+          ) : (
+            <Button className="button" variant="contained" onClick={register}>
+              Register Now
+            </Button>
+          )}
           <p className="secondary-action">
             Already have an account?{" "}
-            <a className="link" href="#">
+            <Link className="link" to="/login">
               Login here
-            </a>
+            </Link>
           </p>
         </Stack>
       </Box>
