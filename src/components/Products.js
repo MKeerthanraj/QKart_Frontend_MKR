@@ -216,7 +216,16 @@ const Products = () => {
         placeholder="Search for items/categories"
         name="search"
       />
-      {/* TODO: CRIO_TASK_MODULE_CART - Display the Cart component */}
+       <Grid container>
+         <Grid item className="product-grid">
+           <Box className="hero">
+             <p className="hero-heading">
+               India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
+               to your door step
+             </p>
+           </Box>
+         </Grid>
+       </Grid>
       <Footer />
     </div>
   );
