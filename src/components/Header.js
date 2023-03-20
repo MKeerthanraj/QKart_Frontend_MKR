@@ -5,7 +5,7 @@ import React from "react";
 import { useHistory } from "react-router-dom";
 import "./Header.css";
 
-const Header = ({ children, hasHiddenAuthButtons }) => {
+const Header = ({ userData, children, hasHiddenAuthButtons }) => {
   const history = useHistory();
   return (
     <Box className="header">
@@ -23,21 +23,23 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
         >
           Back to explore
         </Button>
-      ) : children.logged ? (
+      ) : userData.logged ? (
         <div
           style={{
             display: "flex",
             justifyContent: "end",
             alignItems: "center",
             gap: "10px",
+            width: "100%",
           }}
         >
-          <img src="avatar.png" alt={children.username} height="40px" />
-          <p>{children.username}</p>
+          {children}
+          <img src="avatar.png" alt={userData.username} height="40px" />
+          <p>{userData.username}</p>
           <Button
             className="logout-button"
             variant="text"
-            name='logout'
+            name="logout"
             onClick={() => {
               localStorage.clear();
               window.location.reload();
@@ -47,7 +49,15 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
           </Button>
         </div>
       ) : (
-        <div style={{ display: "flex", justifyContent: "end", gap: "10px" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: "10px",
+            width: "100%",
+          }}
+        >
+          {children}
           <Button
             className="login-button"
             variant="text"
@@ -61,7 +71,7 @@ const Header = ({ children, hasHiddenAuthButtons }) => {
           <Button
             className="register-button"
             variant="text"
-            name='register'
+            name="register"
             onClick={() => {
               history.push("/register");
             }}

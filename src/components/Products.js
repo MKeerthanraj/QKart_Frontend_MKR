@@ -13,13 +13,14 @@ import { config } from "../App";
 import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
-
-
+import ProductCard from "./ProductCard";
 
 const Products = () => {
   const { enqueueSnackbar } = useSnackbar();
   let userData = localStorage.getItem("username");
-  // userData = JSON.parse(userData);
+  const [loading, setLoading] = useState(true);
+  const [productList, setProductList] = useState([]);
+
   /**
    * Make API call to get the products list and store it to display the products
    *
@@ -56,7 +57,19 @@ const Products = () => {
    *      "message": "Something went wrong. Check the backend console for more details"
    * }
    */
-  const performAPICall = async () => {};
+  const performAPICall = async () => {
+    const url = config.endpoint + "/products";
+    try {
+      let { data: response } = await axios.get(url);
+      setLoading(false);
+      return response;
+    } catch (error) {
+      enqueueSnackbar(error.message, {
+        variant: "error",
+        autoHideDuration: 3000,
+      });
+    }
+  };
 
   /**
    * Definition for search handler
@@ -71,7 +84,22 @@ const Products = () => {
    * API endpoint - "GET /products/search?value=<search-query>"
    *
    */
-  const performSearch = async (text) => {};
+  const performSearch = async (text) => {
+    try {
+      let url = config.endpoint + "/products/search?value=" + text;
+      const { data: response } = await axios.get(url);
+      return response;
+    } catch (error) {
+      if(error.response.status==404){
+        return null;
+      }else{
+        enqueueSnackbar(error.message, {
+          variant: "error",
+          autoHideDuration: 3000,
+        });
+      }
+    }
+  };
 
   /**
    * Definition for debounce handler
@@ -84,7 +112,19 @@ const Products = () => {
    *    Timer id set for the previous debounce call
    *
    */
-  const debounceSearch = (event, debounceTimeout) => {};
+  const debounceSearch = (event, debounceTimeout) => {
+    setTimeout( ()=>{
+      performSearch(event.target.value).then((res) => {
+        if(res!=null){
+          setProductList(res);
+        }
+        else{
+          setProductList([]);
+        }}
+      )
+    },debounceTimeout
+    );
+  };
 
   /**
    * Perform the API call to fetch the user's cart and return the response
@@ -194,15 +234,68 @@ const Products = () => {
     options = { preventDuplicate: false }
   ) => {};
 
+  useEffect(() => {
+    performAPICall().then((res) => {
+      setProductList(res);
+    });
+  }, []);
+
   return (
     <div>
       {userData != null ? (
-        <Header children={{ logged: true, username: userData }} />
+        <Header userData={{ logged: true, username: userData }}>
+          <TextField
+            onChange={(event) => {
+              debounceSearch(event,500)
+            }}
+            className="search-desktop"
+            fullWidth
+            size="small"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Search color="primary" />
+                </InputAdornment>
+              ),
+            }}
+            placeholder="Search for items/categories"
+            name="search"
+            style={{
+              maxWidth: "33%",
+              margin: "auto",
+            }}
+          />
+        </Header>
       ) : (
-        <Header children={{ logged: false }} />
+        <Header userData={{ logged: false }}>
+          <TextField
+            onChange={(event) => {
+              debounceSearch(event,500)
+            }}
+            className="search-desktop"
+            fullWidth
+            size="small"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Search color="primary" />
+                </InputAdornment>
+              ),
+            }}
+            placeholder="Search for items/categories"
+            name="search"
+            style={{
+              maxWidth: "33%",
+              margin: "auto",
+            }}
+          />
+        </Header>
       )}
 
       <TextField
+        onChange={(event) => {
+          debounceSearch(event,500)
+        }}
         className="search-mobile"
         size="small"
         fullWidth
@@ -216,16 +309,37 @@ const Products = () => {
         placeholder="Search for items/categories"
         name="search"
       />
-       <Grid container>
-         <Grid item className="product-grid">
-           <Box className="hero">
-             <p className="hero-heading">
-               India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-               to your door step
-             </p>
-           </Box>
-         </Grid>
-       </Grid>
+      <Grid container spacing={2}>
+        <Grid item className="product-grid">
+          <Box className="hero">
+            <p className="hero-heading">
+              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
+              to your door step
+            </p>
+          </Box>
+        </Grid>
+        {loading ? (
+          <div className="loading">
+            <CircularProgress />
+            <br />
+            <p>Loading Products</p>
+          </div>
+        ) : ( productList.length!=0 ?
+          (productList.map((item) => {
+            return (
+              <Grid item className="product-grid" md={3} xs={6}>
+                <ProductCard product={item} />
+              </Grid>
+            );
+          })):(
+            <div className="loading">
+              <SentimentDissatisfied/>
+              <p>No Products Found</p>
+            </div>
+        ))
+      }
+      </Grid>
+      <br />
       <Footer />
     </div>
   );
