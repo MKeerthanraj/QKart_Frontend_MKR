@@ -23,7 +23,7 @@ const ProductCard = ({ product, handleAddToCart }) => {
         <Rating name="read-only" value={product.rating} readOnly />
         </CardContent>
         <CardActions className="card-actions">
-        <Button className="card-button" variant="contained" fullWidth>
+        <Button className="card-button" variant="contained" onClick={handleAddToCart} fullWidth>
           <AddShoppingCartOutlined/> ADD TO CART
         </Button>
         </CardActions>

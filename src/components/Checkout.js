@@ -53,6 +53,8 @@ const Checkout = () => {
 
 
 
+  let items=[];
+  let products=[];
 
   return (
     <>

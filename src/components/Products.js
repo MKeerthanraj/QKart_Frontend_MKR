@@ -14,12 +14,19 @@ import Footer from "./Footer";
 import Header from "./Header";
 import "./Products.css";
 import ProductCard from "./ProductCard";
+import Cart, { generateCartItemsFrom } from "./Cart";
 
 const Products = () => {
   const { enqueueSnackbar } = useSnackbar();
-  let userData = localStorage.getItem("username");
+
+  let username = localStorage.getItem("username");
+  let userBalance = localStorage.getItem("balance");
+  let userToken = localStorage.getItem("token");
+
   const [loading, setLoading] = useState(true);
   const [productList, setProductList] = useState([]);
+  const [fullProductsList, setFullProductsList] = useState([]);
+  const [cartData, setCartData] = useState([]);
 
   /**
    * Make API call to get the products list and store it to display the products
@@ -62,6 +69,7 @@ const Products = () => {
     try {
       let { data: response } = await axios.get(url);
       setLoading(false);
+      setFullProductsList(response);
       return response;
     } catch (error) {
       enqueueSnackbar(error.message, {
@@ -90,9 +98,9 @@ const Products = () => {
       const { data: response } = await axios.get(url);
       return response;
     } catch (error) {
-      if(error.response.status==404){
+      if (error.response.status == 404) {
         return null;
-      }else{
+      } else {
         enqueueSnackbar(error.message, {
           variant: "error",
           autoHideDuration: 3000,
@@ -113,17 +121,15 @@ const Products = () => {
    *
    */
   const debounceSearch = (event, debounceTimeout) => {
-    setTimeout( ()=>{
+    setTimeout(() => {
       performSearch(event.target.value).then((res) => {
-        if(res!=null){
+        if (res != null) {
           setProductList(res);
-        }
-        else{
+        } else {
           setProductList([]);
-        }}
-      )
-    },debounceTimeout
-    );
+        }
+      });
+    }, debounceTimeout);
   };
 
   /**
@@ -157,8 +163,20 @@ const Products = () => {
   const fetchCart = async (token) => {
     if (!token) return;
 
+    let url = config.endpoint + "/cart";
+
+    const headers = {
+      headers: {
+        Authorization: "Bearer " + token,
+      },
+    };
+
     try {
       // TODO: CRIO_TASK_MODULE_CART - Pass Bearer token inside "Authorization" header to get data from "GET /cart" API and return the response data
+      let { data: res } = await axios.get(url, headers).then((response) => {
+        return response;
+      });
+      return res;
     } catch (e) {
       if (e.response && e.response.status === 400) {
         enqueueSnackbar(e.response.data.message, { variant: "error" });
@@ -187,7 +205,15 @@ const Products = () => {
    *    Whether a product of given "productId" exists in the "items" array
    *
    */
-  const isItemInCart = (items, productId) => {};
+  const isItemInCart = (items, productId) => {
+    let present = false;
+    items.forEach((item) => {
+      if (item.productId === productId) {
+        present = true;
+      }
+    });
+    return present;
+  };
 
   /**
    * Perform the API call to add or update items in the user's cart and update local cart data to display the latest cart
@@ -226,27 +252,85 @@ const Products = () => {
    * }
    */
   const addToCart = async (
-    token,
+    tokens,
     items,
     products,
     productId,
     qty,
     options = { preventDuplicate: false }
-  ) => {};
+  ) => {
+    if (username != null) {
+      if (options.preventDuplicate) {
+        if (isItemInCart(items, productId)) {
+          enqueueSnackbar(
+            "Item already in cart. Use the cart sidebar to update quantity or remove item.",
+            {
+              variant: "warning",
+              autoHideDuration: 3000,
+            }
+          );
+        } else {
+          const url = config.endpoint + "/cart";
+          const body = {
+            productId: productId,
+            qty: qty,
+          };
+          const headers = {
+            headers: {
+              Authorization: "Bearer " + userToken,
+              "Content-type": "application/json; charset=utf-8",
+            },
+          };
+          const { data: response } = await axios
+            .post(url, body, headers)
+            .then((res) => {
+              return res;
+            });
+          setCartData(response);
+        }
+      } else {
+        const url = config.endpoint + "/cart";
+        const body = {
+          productId: productId,
+          qty: qty,
+        };
+        const headers = {
+          headers: {
+            Authorization: "Bearer " + userToken,
+            "Content-type": "application/json; charset=utf-8",
+          },
+        };
+        const { data: response } = await axios
+          .post(url, body, headers)
+          .then((res) => {
+            return res;
+          });
+        setCartData(response);
+      }
+    } else {
+      enqueueSnackbar("Login to add an item to the Cart", {
+        variant: "warning",
+        autoHideDuration: 3000,
+      });
+    }
+  };
 
   useEffect(() => {
     performAPICall().then((res) => {
       setProductList(res);
     });
+    fetchCart(userToken).then((res) => {
+      setCartData(res);
+    });
   }, []);
 
   return (
     <div>
-      {userData != null ? (
-        <Header userData={{ logged: true, username: userData }}>
+      {username != null ? (
+        <Header userData={{ logged: true, username: username }}>
           <TextField
             onChange={(event) => {
-              debounceSearch(event,500)
+              debounceSearch(event, 500);
             }}
             className="search-desktop"
             fullWidth
@@ -270,7 +354,7 @@ const Products = () => {
         <Header userData={{ logged: false }}>
           <TextField
             onChange={(event) => {
-              debounceSearch(event,500)
+              debounceSearch(event, 500);
             }}
             className="search-desktop"
             fullWidth
@@ -294,7 +378,7 @@ const Products = () => {
 
       <TextField
         onChange={(event) => {
-          debounceSearch(event,500)
+          debounceSearch(event, 500);
         }}
         className="search-mobile"
         size="small"
@@ -309,35 +393,61 @@ const Products = () => {
         placeholder="Search for items/categories"
         name="search"
       />
-      <Grid container spacing={2}>
-        <Grid item className="product-grid">
-          <Box className="hero">
-            <p className="hero-heading">
-              India’s <span className="hero-highlight">FASTEST DELIVERY</span>{" "}
-              to your door step
-            </p>
-          </Box>
+      <Grid container>
+        <Grid item xs={12} md={true}>
+          <Grid container spacing={2}>
+            <Grid item className="product-grid">
+              <Box className="hero">
+                <p className="hero-heading">
+                  India’s{" "}
+                  <span className="hero-highlight">FASTEST DELIVERY</span> to
+                  your door step
+                </p>
+              </Box>
+            </Grid>
+            {loading ? (
+              <div className="loading">
+                <CircularProgress />
+                <br />
+                <p>Loading Products</p>
+              </div>
+            ) : productList.length != 0 ? (
+              productList.map((item) => {
+                return (
+                  <Grid item className="product-grid" md={3} xs={6}>
+                    <ProductCard
+                      product={item}
+                      handleAddToCart={() => {
+                        addToCart(
+                          userToken,
+                          cartData,
+                          fullProductsList,
+                          item._id,
+                          1,
+                          { preventDuplicate: true }
+                        );
+                      }}
+                    />
+                  </Grid>
+                );
+              })
+            ) : (
+              <div className="loading">
+                <SentimentDissatisfied />
+                <p>No Products Found</p>
+              </div>
+            )}
+          </Grid>
         </Grid>
-        {loading ? (
-          <div className="loading">
-            <CircularProgress />
-            <br />
-            <p>Loading Products</p>
-          </div>
-        ) : ( productList.length!=0 ?
-          (productList.map((item) => {
-            return (
-              <Grid item className="product-grid" md={3} xs={6}>
-                <ProductCard product={item} />
-              </Grid>
-            );
-          })):(
-            <div className="loading">
-              <SentimentDissatisfied/>
-              <p>No Products Found</p>
-            </div>
-        ))
-      }
+        {username != null && (
+          <Grid item md={3} style={{ backgroundColor: "#E9F5E1" }}>
+            <Cart
+              products={fullProductsList}
+              items={generateCartItemsFrom(cartData, fullProductsList)}
+              handleQuantity={addToCart}
+            />
+          </Grid>
+        )}
       </Grid>
       <br />
       <Footer />
