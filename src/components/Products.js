@@ -15,6 +15,7 @@ import Header from "./Header";
 import "./Products.css";
 import ProductCard from "./ProductCard";
 import Cart, { generateCartItemsFrom } from "./Cart";
+import { useHistory } from "react-router-dom";
 
 const Products = () => {
   const { enqueueSnackbar } = useSnackbar();
@@ -27,6 +28,8 @@ const Products = () => {
   const [productList, setProductList] = useState([]);
   const [fullProductsList, setFullProductsList] = useState([]);
   const [cartData, setCartData] = useState([]);
+
+  const history = useHistory();
 
   /**
    * Make API call to get the products list and store it to display the products
@@ -180,6 +183,7 @@ const Products = () => {
     } catch (e) {
       if (e.response && e.response.status === 400) {
         enqueueSnackbar(e.response.data.message, { variant: "error" });
+        history.push("/login");
       } else {
         enqueueSnackbar(
           "Could not fetch cart details. Check that the backend is running, reachable and returns valid JSON.",
@@ -281,12 +285,19 @@ const Products = () => {
               "Content-type": "application/json; charset=utf-8",
             },
           };
-          const { data: response } = await axios
-            .post(url, body, headers)
-            .then((res) => {
-              return res;
+          try {
+            const { data: response } = await axios
+              .post(url, body, headers)
+              .then((res) => {
+                return res;
+              });
+            setCartData(response);
+          } catch (error) {
+            enqueueSnackbar(error.response.data.message, {
+              variant: "error",
+              autoHideDuration: 3000,
             });
-          setCartData(response);
+          }
         }
       } else {
         const url = config.endpoint + "/cart";
@@ -300,12 +311,19 @@ const Products = () => {
             "Content-type": "application/json; charset=utf-8",
           },
         };
-        const { data: response } = await axios
-          .post(url, body, headers)
-          .then((res) => {
-            return res;
+        try {
+          const { data: response } = await axios
+            .post(url, body, headers)
+            .then((res) => {
+              return res;
+            });
+          setCartData(response);
+        } catch (error) {
+          enqueueSnackbar(error.response.data.message, {
+            variant: "error",
+            autoHideDuration: 3000,
           });
-        setCartData(response);
+        }
       }
     } else {
       enqueueSnackbar("Login to add an item to the Cart", {
@@ -414,7 +432,7 @@ const Products = () => {
             ) : productList.length != 0 ? (
               productList.map((item) => {
                 return (
-                  <Grid item className="product-grid" md={3} xs={6}>
+                  <Grid item className="product-grid" key={item._id} md={3} xs={6}>
                     <ProductCard
                       product={item}
                       handleAddToCart={() => {
@@ -440,7 +458,7 @@ const Products = () => {
           </Grid>
         </Grid>
         {username != null && (
-          <Grid item md={3} style={{ backgroundColor: "#E9F5E1" }}>
+          <Grid item xs={12} md={3} style={{ backgroundColor: "#E9F5E1" }}>
             <Cart
               products={fullProductsList}
               items={generateCartItemsFrom(cartData, fullProductsList)}

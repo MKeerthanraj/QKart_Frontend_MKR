@@ -7,6 +7,7 @@ import Header from "./Header";
 import "./Thanks.css";
 
 const Thanks = () => {
+    const username = localStorage.getItem('username');
   const history = useHistory();
 
   const routeToProducts = () => {
@@ -23,7 +24,7 @@ const Thanks = () => {
 
   return (
     <>
-      <Header />
+      <Header userData={{ logged: true, username: username }} />
       <Box className="greeting-container">
         <h2>Yay! It's ordered 😃</h2>
         <p>You will receive an invoice for your order shortly.</p>

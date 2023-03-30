@@ -4,7 +4,7 @@ import {
   ShoppingCart,
   ShoppingCartOutlined,
 } from "@mui/icons-material";
-import { Button, IconButton, Stack } from "@mui/material";
+import { Button, IconButton, Stack, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import React from "react";
 import { useHistory } from "react-router-dom";
@@ -49,6 +49,7 @@ import "./Cart.css";
  */
 export const generateCartItemsFrom = (cartData, productsData) => {
   let result = [];
+  if (cartData == null) return;
   productsData.forEach((item) => {
     cartData.forEach((cartItem) => {
       if (item._id == cartItem.productId) {
@@ -71,9 +72,9 @@ export const generateCartItemsFrom = (cartData, productsData) => {
  *
  */
 export const getTotalCartValue = (items = []) => {
-  let total=0;
-  items.forEach(item=>{
-    total+=(item.cost*item.qty);
+  let total = 0;
+  items.forEach((item) => {
+    total += item.cost * item.qty;
   });
   return total;
 };
@@ -92,19 +93,30 @@ export const getTotalCartValue = (items = []) => {
  *
  *
  */
-const ItemQuantity = ({ value, handleAdd, handleDelete }) => {
+const ItemQuantity = ({ isReadOnly, value, handleAdd, handleDelete }) => {
   return (
-    <Stack direction="row" alignItems="center">
-      <IconButton size="small" color="primary" onClick={handleDelete}>
-        <RemoveOutlined />
-      </IconButton>
-      <Box padding="0.5rem" data-testid="item-qty">
-        {value}
-      </Box>
-      <IconButton size="small" color="primary" onClick={handleAdd}>
-        <AddOutlined />
-      </IconButton>
-    </Stack>
+    <>
+      {isReadOnly ? (
+        <Stack direction="row" alignItems="center">
+          <p>Qty:</p>
+          <Box padding="0.5rem" data-testid="item-qty">
+            {value}
+          </Box>
+        </Stack>
+      ) : (
+        <Stack direction="row" alignItems="center">
+          <IconButton size="small" color="primary" onClick={handleDelete}>
+            <RemoveOutlined />
+          </IconButton>
+          <Box padding="0.5rem" data-testid="item-qty">
+            {value}
+          </Box>
+          <IconButton size="small" color="primary" onClick={handleAdd}>
+            <AddOutlined />
+          </IconButton>
+        </Stack>
+      )}
+    </>
   );
 };
 
@@ -122,8 +134,8 @@ const ItemQuantity = ({ value, handleAdd, handleDelete }) => {
  *
  *
  */
-const Cart = ({ products, items = [], handleQuantity }) => {
-  const token = localStorage.getItem('token');
+const Cart = ({ isReadOnly, products, items = [], handleQuantity }) => {
+  const token = localStorage.getItem("token");
   const history = useHistory();
 
   if (!items.length) {
@@ -167,28 +179,32 @@ const Cart = ({ products, items = [], handleQuantity }) => {
                   justifyContent="space-between"
                   alignItems="center"
                 >
-                  <ItemQuantity
-                  // Add required props by checking implementation
-                  value={item.qty}
-                  handleAdd={()=>{
-                    handleQuantity(
-                      token,
-                      items,
-                      products,
-                      item._id,
-                      (item.qty+1)
-                    )
-                  }}
-                  handleDelete={()=>{
-                    handleQuantity(
-                      token,
-                      items,
-                      products,
-                      item._id,
-                      (item.qty-1)
-                    )
-                  }}
-                  />
+                  {isReadOnly ? (
+                    <ItemQuantity value={item.qty} isReadOnly />
+                  ) : (
+                    <ItemQuantity
+                      // Add required props by checking implementation
+                      value={item.qty}
+                      handleAdd={() => {
+                        handleQuantity(
+                          token,
+                          items,
+                          products,
+                          item._id,
+                          item.qty + 1
+                        );
+                      }}
+                      handleDelete={() => {
+                        handleQuantity(
+                          token,
+                          items,
+                          products,
+                          item._id,
+                          item.qty - 1
+                        );
+                      }}
+                    />
+                  )}
                   <Box padding="0.5rem" fontWeight="700">
                     ${item.cost}
                   </Box>
@@ -218,17 +234,59 @@ const Cart = ({ products, items = [], handleQuantity }) => {
         </Box>
 
         <Box display="flex" justifyContent="flex-end" className="cart-footer">
-          <Button
-            color="primary"
-            variant="contained"
-            startIcon={<ShoppingCart />}
-            className="checkout-btn"
-            onClick={()=>{history.push("/checkout")}}
-          >
-            Checkout
-          </Button>
+          {!isReadOnly && (
+            <Button
+              color="primary"
+              variant="contained"
+              startIcon={<ShoppingCart />}
+              className="checkout-btn"
+              onClick={() => {
+                history.push("/checkout");
+              }}
+            >
+              Checkout
+            </Button>
+          )}
         </Box>
       </Box>
+        {isReadOnly && (
+          <Box className="cart" padding={"1rem"}>
+            <h2>Order Details</h2>
+            <Box display={"flex"} justifyContent={"space-between"}>
+              <Typography variant="subtitle1">Products</Typography>
+              <Typography variant="subtitle1">{items.length}</Typography>
+            </Box>
+            <Box display={"flex"} justifyContent={"space-between"}>
+              <Typography variant="subtitle1">SubTotal</Typography>
+              <Typography variant="subtitle1">${getTotalCartValue(items)}</Typography>
+            </Box>
+            <Box display={"flex"} justifyContent={"space-between"}>
+              <Typography variant="subtitle1">Shipping Charges</Typography>
+              <Typography variant="subtitle1">$0</Typography>
+            </Box>
+            <br/>
+            <Box display={"flex"} justifyContent={"space-between"}>
+              <Box
+                color="#3C3C3C"
+                fontWeight="700"
+                fontSize="1.5rem"
+                alignSelf="center"
+                data-testid="cart-total"
+              >
+                Total
+              </Box>
+              <Box
+                color="#3C3C3C"
+                fontWeight="700"
+                fontSize="1.5rem"
+                alignSelf="center"
+                data-testid="cart-total"
+              >
+                ${getTotalCartValue(items)}
+              </Box>
+            </Box>
+          </Box>
+        )}
     </>
   );
 };
